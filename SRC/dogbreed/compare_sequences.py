@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Tuple, Dict, List, Iterable, Union
 from Bio import Align, SeqIO, pairwise2
 from Bio.SeqRecord import SeqRecord
+from pathlib import Path
 
 # Configure a deterministic global aligner (no pairwise2)
 _aligner = Align.PairwiseAligner()
@@ -12,17 +13,15 @@ _aligner.mismatch_score = 0.0      # pure identity
 _aligner.open_gap_score = -1.0
 _aligner.extend_gap_score = -0.5
 
+VALID_BASES = set("ACGTRYSWKMBDHVN-")
+
 def _norm(seq: str) -> str:
-    """Uppercase, strip, validate DNA sequence."""
+    """Normalize and validate a nucleotide sequence."""
     s = (seq or "").strip().upper()
     if not s:
         raise ValueError("Empty sequence")
-    # allow common DNA symbols; tweak if your tests expect more
-    allowed = set("ACGTN-")
-    bad = {c for c in s if c not in allowed}
-    if bad:
-        raise ValueError(f"Invalid characters: {''.join(sorted(bad))}")
-    return s
+    s = s.replace("U", "T")
+    return "".join(c if c in VALID_BASES else "N" for c in s)
 
 
 def align_pair(seq1: str, seq2: str):
@@ -67,23 +66,30 @@ def compare_fasta(path: str) -> Tuple[str, str, float]:
 
 RecordsLike = Union[str, Iterable[SeqRecord], Iterable[Tuple[str, str]]]
 
-def _iter_records(records: RecordsLike) -> Iterable[SeqRecord]:
-    """
-Yield (id, seq) pairs from:
-- a FASTA filepath
-- an iterable of Bio SeqRecords
-- an iterable of (id, seq) tuples
-    """
-    if isinstance(records, str):
-        for rec in read_fasta(records):
+def _iter_records(records: RecordsLike) -> Iterator[Tuple[str, str]]:
+    """Yield (id, seq) pairs from a path, file-like, SeqRecords, or tuples."""
+    # Path or string: parse FASTA
+    if isinstance(records, (str, Path)):
+        with open(records, "r", encoding="utf-8") as handle:
+            for rec in SeqIO.parse(handle, "fasta"):
+                yield rec.id, str(rec.seq)
+        return
+
+    # File-like: parse FASTA
+    if hasattr(records, "read"):
+        for rec in SeqIO.parse(records, "fasta"):
             yield rec.id, str(rec.seq)
-    else:
-        for item in records:
-            if isinstance(item, SeqRecord):
-                yield item.id, str(item.seq)
-            else:
-                rec_id, rec_seq = item
-                yield str(rec_id), str(rec_seq)
+        return
+
+    # Iterable of items: accept SeqRecord or (id, seq)
+    for rec in records:
+        if isinstance(rec, SeqRecord):
+            yield rec.id, str(rec.seq)
+        elif isinstance(rec, tuple) and len(rec) == 2:
+            rid, rseq = rec
+            yield str(rid), str(rseq)
+        else:
+            raise TypeError(f"Unsupported record type: {type(rec)!r}")
 
 def compare_sequences(query_seq: str, records: RecordsLike) -> List[Dict[str, Union[str, float]]]:  
     """
