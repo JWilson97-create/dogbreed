@@ -1,0 +1,18 @@
+accession_id,breed
+AY566744.1,English Springer Spaniel
+KM062364.1,Unknown Breed
+M165264.1,Unknown Breed
+CM023446.1,Golden Retriever
+CM123456.1,German Shepherd
+CM654321.1,Labrador Retriever
+CM789012.1,Beagle
+CM345678.1,Poodle
+CM901234.1,Boxer
+CM567890.1,Dachshund
+AY656744.1,Shih Tzu
+AY656744.1|,1
+gb|AY656744.1|,English Springer Spaniel
+gb|MW916023.1|,Canis lupus familiaris
+MW916023.1,Unknown Breed
+gb|MW916042.1|,Unknown Breed
+test_id,Test Breed

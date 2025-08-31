@@ -1,0 +1,17 @@
+CLUSTAL 2.1 multiple sequence alignment
+
+
+Golden_Retriever        ------------------------TTGACGTAGCTAGCATCGATCGATGCTAGCTAGCTA
+Unknown_MW916023.1      ----------------------AGCTAGC-TAGCTAGCATCGATCGATGCTAGCTAGCTA
+Shih_Tzu                ACGTGATCGTAGCTAGCTAGCTAGCTAGC-TAGCTAGCATCGATCGATGCTAGCTAGCTA
+                                                 *  * ******************************
+
+Golden_Retriever        GCTAGCATCGATCGATGCTAGCATCGATCGATCGA---TCGTAGCTAGCTAGCTAGCTAG
+Unknown_MW916023.1      GCTAGCATCGATCGATGCTAGCATCGATCGATCGACGATCGTAGCTAGCTAGCTAGCTAG
+Shih_Tzu                GCTAGCTA--------GCTAGCATCGATCGATCGA-------TGCTAGCTAGCTAGCTAG
+                        ******          *******************        *****************
+
+Golden_Retriever        CTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCGATCG
+Unknown_MW916023.1      CTAGCTAGCTAGCTAGCTAGCATCGATCGATCGATCG----
+Shih_Tzu                CA---TCGATCGAT-GCTAGCATCGATCGATCGA-------
+                        *    * * * * * *******************       

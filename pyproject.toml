@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dogbreed"
+version = "0.1.0"
+description = "Identify the closest dog breed to a DNA sequence and build a small phylogenetic tree."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Joshua Wilson-Addo" }]
+dependencies = [
+  "biopython>=1.83",
+  "numpy>=1.26",
+  "matplotlib>=3.8",
+]
+
+# Optional dependency group (example)
+[project.optional-dependencies]
+plots = ["matplotlib>=3.8"]
+
+[project.scripts]
+dogbreed-identify = "dogbreed.cli:identify"
+dogbreed-tree     = "dogbreed.cli:make_tree"
+
+# Tell setuptools we’re using a src/ layout
+[tool.setuptools]
+package-dir = { "" = "SRC" }
+
+# Use automatic discovery (DO NOT also list 'packages = [...]')
+[tool.setuptools.packages.find]
+where = ["SRC"]

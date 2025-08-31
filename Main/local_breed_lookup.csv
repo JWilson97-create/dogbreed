@@ -1,0 +1,25 @@
+accession_id,breed_name
+AY656744.1,Shih Tzu
+MW916023.1,Labrador Retriever
+CM023446.1,Golden Retriever
+
+
+# clean_breed_mapping.py
+import csv
+
+input_file = "data/breed_mapping.csv"
+output_file = "data/breed_mapping.csv"
+unique = {}
+
+with open(input_file, "r") as infile:
+    reader = csv.reader(infile)
+    for row in reader:
+        accession_id, breed_name = row
+        unique[accession_id] = breed_name  # keeps latest entry
+
+with open(output_file, "w", newline="") as outfile:
+    writer = csv.writer(outfile)
+    for accession_id in sorted(unique):
+        writer.writerow([accession_id, unique[accession_id]])
+
+print("✅ breed_mapping.csv cleaned: duplicates removed and sorted by accession ID.")
