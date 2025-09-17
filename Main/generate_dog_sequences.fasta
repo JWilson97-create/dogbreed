@@ -1,0 +1,36 @@
+import os
+import pandas as pd
+
+input_dir = "data/fasta_files" # Directory containing individual FASTA files
+output_file = "data/dog_sequences.fa" # Combined FASTA file
+
+with open(output_file, "w") as outfile: # Open output file
+    for filename in os.listdir(input_dir): # Iterate over input directory
+        if filename.endswith(".fasta") or filename.endswith(".fa"): # Check file extension
+            file_path = os.path.join(input_dir, filename) # Get full file path
+            with open(file_path, "r") as infile: # Open individual FASTA file
+                outfile.write(infile.read()) # Write contents to combined file
+                outfile.write("\n") # Write newline after each file
+
+print(f"✅ Combined FASTA saved to: {output_file}") # Confirm successful creation
+
+# Generate combined FASTA file
+# This function combines individual FASTA files into one dog_sequences.fa file
+
+
+if __name__ == "__main__":
+    input_dir = "data/fasta_files"
+    output_file = "data/dog_sequences.fa"
+
+    with open(output_file, "w") as outfile:
+        for filename in os.listdir(input_dir):
+            if filename.endswith(".fasta") or filename.endswith(".fa"):
+                file_path = os.path.join(input_dir, filename)
+                with open(file_path, "r") as infile:
+                    outfile.write(infile.read())
+                    outfile.write("\n")  # Write newline after each file
+
+    print(f"✅ Combined FASTA saved to: {output_file}")
+
+
+
