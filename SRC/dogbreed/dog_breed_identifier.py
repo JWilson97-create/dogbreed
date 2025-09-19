@@ -1,105 +1,70 @@
-# SRC/dogbreed/dog_breed_identifier.py
 from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Tuple
 import csv
 
+from dogbreed.compare_sequences import compare_sequences
+from dogbreed.phylogenetic_tree import generate_phylogenetic_tree as generate_tree
 from Bio import SeqIO
-from dogbreed.compare_sequences import compare_sequences, closest_match
-
 
 
 class DogBreedIdentifier:
-    """
-    Keeps paths only in __init__. No I/O or heavy work at import/construct time.
-    Methods do the work and return useful paths/values for tests.
-    """
-
-    def __init__(self, fasta_file: Path, mystery_file: Path, mapping_file: Path, output_dir: Path):
-        """
-        Initialize the DogBreedIdentifier with file paths.
-        """
+    def __init__(self, fasta_file: str, mystery_file: str, out_dir: str):
         self.fasta_file = Path(fasta_file)
         self.mystery_file = Path(mystery_file)
-        self.mapping_file = Path(mapping_file)
-        self.output_dir = Path(output_dir)
+        self.out_dir = Path(out_dir)
+        self.out_dir.mkdir(parents=True, exist_ok=True)
 
-        # Precomputed destinations (don’t create/write here)
-        self.named_fasta = self.output_dir / "dog_sequences_named.fa"
-        self.alignment_file = self.output_dir / "dog_sequences.aln"  # optional if you never use it
-        self.dnd_file = self.output_dir / "dog_sequences.dnd"        # optional if you never use it
-        self.tree_png = self.output_dir / "phylogenetic_tree.png"
-        self.tree_nwk = self.output_dir / "phylogenetic_tree.nwk"
-
-    # --------------------- helpers ---------------------
-
-    def _load_map(self) -> Dict[str, str]:
-        """
-        Load the mapping from accession IDs to breed names.
-        """
-        mapping: Dict[str, str] = {} # accession_id -> breed
-        with self.mapping_file.open(newline="") as f: # type: ignore
-            for row in csv.DictReader(f): # type: ignore
-                mapping[row["accession_id"]] = row["breed"] # map accession_id to breed
-        return mapping
-
-    # --------------------- public API ---------------------
+        # Results files
+        self.named_fasta = self.out_dir / "dog_sequences_named.fa"
 
     def replace_ids_with_names(self) -> str:
-        """
-        Read self.fasta_file, replace record IDs using mapping CSV,
-        write to self.named_fasta. Spaces become underscores.
-        Returns the path written (string for easy assertions).
-        """
-        self.output_dir.mkdir(parents=True, exist_ok=True) # ensure output dir exists
-        mapping = self._load_map() # load mapping
+        """Convert FASTA accession IDs to breed names using a CSV mapping file."""
+        map_file = Path("data/breed_mapping.csv")
+        mapping: Dict[str, str] = {}
 
-        with self.named_fasta.open("w") as out_handle: # open output file
-            for rec in SeqIO.parse(self.fasta_file, "fasta"): # parse input FASTA
-                breed = mapping.get(rec.id, "Unknown").replace(" ", "_") # get breed or Unknown
-                rec.id = breed # set record ID to breed
-                rec.description = ""  # clean header
-                SeqIO.write(rec, out_handle, "fasta") # write record
+        with open(map_file, newline="") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                mapping[row["accession_id"]] = row["breed"]
 
+        # Replace IDs in fasta file
+        records = []
+        for record in SeqIO.parse(str(self.fasta_file), "fasta"):
+            if record.id in mapping:
+                record.id = mapping[record.id]
+                record.description = mapping[record.id]
+            records.append(record)
+
+        SeqIO.write(records, str(self.named_fasta), "fasta")
         return str(self.named_fasta)
 
-    def identify_mystery(self) -> Tuple[str, float]:
+    def identify(self) -> List[Tuple[str, float]]:
         """
-        Compare the first sequence in self.mystery_file to the named reference set
-        (creates it if missing). Returns (best_id, percent_identity).
+        Compare the mystery sequence to the named reference set.
+        Returns a list of (best_id, percent_identity).
         """
         if not self.named_fasta.exists():
             self.replace_ids_with_names()
 
-        # Load the query sequence (first record)
-        query_record = next(SeqIO.parse(self.mystery_file, "fasta")) # type: ignore
-        query_seq = str(query_record.seq) # get sequence string
+        query_record = next(SeqIO.parse(self.mystery_file, "fasta"))
+        query_seq = str(query_record.seq)
 
-        # Compare against named set. compare_sequences returns ranked (id, %id)
-        ranked = compare_sequences(query_seq, self.named_fasta)
-        best_id = ranked[0][0] if ranked else "Unknown"
-        best_pid = ranked[0][1] if ranked else 0.0
-        return best_id, best_pid # return best match
+        ranked = compare_sequences(query_seq, str(self.named_fasta))
+
+        if ranked:
+            return [(ranked[0][0], ranked[0][1])]
+        else:
+            return [("Unknown", 0.0)]
 
     def build_tree(self) -> List[str]:
         """
-        Generate a phylogenetic tree from the named FASTA.
-        Returns list of written file paths.
+        Build a phylogenetic tree from the named FASTA file.
+        Returns list of output file paths [nwk, png].
         """
-        from .generate_phylogenetic_tree import generate_tree # avoid circular import
-        if not self.named_fasta.exists(): # ensure named FASTA exists
-            self.replace_ids_with_names() # create if missing
-        return generate_tree(
-            fasta_path=self.named_fasta,
-            output_dir=self.output_dir,
-            newick_name=self.tree_nwk.name,
-            png_name=self.tree_png.name,
-        ) # return list of written paths
+        if not self.named_fasta.exists():
+            self.replace_ids_with_names()
 
-    def run(self) -> List[str]:
-        """
-        Convenience: do the whole pipeline (rename IDs -> build tree).
-        Returns list of written file paths.
-        """
-        self.replace_ids_with_names()
-        return self.build_tree() # return list of written paths
+        nwk_name = "phylogenetic_tree.nwk"
+        png_name = "phylogenetic_tree.png"
+        return generate_tree(self.named_fasta, self.out_dir, nwk_name, png_name)

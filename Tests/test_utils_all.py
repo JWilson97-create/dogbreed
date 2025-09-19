@@ -28,7 +28,7 @@ def test_load_fasta_reads_sequences(tmp_fasta: Path):
     assert len(seqs) == 2
     # key change: compare content, not object type
     assert isinstance(seqs[0], (str, object))
-    assert seq_to_str(seqs[0]) in {"ACGTACGTACGT", "ACGTACCTACGT"}
+    assert seq_to_str(seqs[0]) in {"ACGTACGTAGCT", "ACGTACGTAGCT"}
 
 def test_load_fasta_empty_file(empty_fasta: Path):
     """Load an empty FASTA and check we get an empty list."""

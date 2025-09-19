@@ -11,6 +11,7 @@ def tmp_fasta(tmp_path: Path) -> Path:
     )
     return fasta
 
+
 @pytest.fixture
 def empty_fasta(tmp_path: Path) -> Path:
     """Empty FASTA file."""

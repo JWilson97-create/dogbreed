@@ -1,6 +1,7 @@
-# SRC/dogbreed/compare_sequences.py
 from __future__ import annotations
-from typing import Tuple, Dict, List, Iterable, Union
+# SRC/dogbreed/compare_sequences.py
+import csv
+from typing import Tuple, Dict, List, Iterable, Union, Iterator
 from Bio import Align, SeqIO, pairwise2
 from Bio.SeqRecord import SeqRecord
 from pathlib import Path
@@ -97,6 +98,7 @@ def _iter_records(records: RecordsLike) -> Iterator[Tuple[str, str]]:
             yield str(rid), str(rseq)
         else:
             raise TypeError(f"Unsupported record type: {type(rec)!r}")
+        
 
 def compare_sequences(query_seq: str, records: RecordsLike) -> List[Dict[str, Union[str, float]]]:  
     """
@@ -118,3 +120,36 @@ def closest_match(query_seq: str, records: RecordsLike) -> str:
     """
     ranked = compare_sequences(query_seq, records)
     return ranked[0][0] if ranked else ""
+
+
+def scores_to_probabilities(scores: list[tuple[str, float]]) -> list[tuple[str, float, float]]:
+    """
+    Convert percent identity scores into probabilities.
+
+    Args:
+        scores: list of (record_id, percent_identity)
+
+    Returns:
+        List of (record_id, percent_identity, probability)
+    """
+    weights = [s[1] for _, s in scores]
+    total = sum(weights)
+
+    if total == 0:
+        return [(rec_id, pid, 0.0) for rec_id, pid in scores]
+
+    return [(rec_id, pid, round(pid / total, 4)) for rec_id, pid in scores]
+
+
+def save_results_to_csv(results: List[Tuple[str, float, float]], out_path: Path) -> None:
+    """
+    Save comparison results with probabilities to a CSV file.
+
+    Args:
+        results: List of (record_id, percent_identity, probability)
+        out_path: Path to output CSV file
+    """
+    with open(out_path, mode="w", newline="") as f:  # Open output CSV
+        writer = csv.writer(f) # Create CSV writer
+        writer.writerow(["Breed", "% Identity", "Probability"])  # Header
+        writer.writerows(results)  # Data rows

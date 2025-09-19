@@ -1,39 +1,47 @@
 from pathlib import Path
-import os, sys, importlib
 import pytest
-
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
-mod = importlib.import_module("Main.generate_alignment_input")
-ENTRY = getattr(mod, "main", None) or getattr(mod, "generate_alignment_input", None)
+from dogbreed.generate_alignment_input import generate_alignment_input
 
 
-@pytest.mark.skipif(ENTRY is None, reason="generate_alignment_input entry function not found")
-def test_generate_alignment_input_writes_expected(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Run the ENTRY function and check that alignment input files are written."""
-    # Set up temp data and results dirs
-    data = tmp_path / "data"
-    results = tmp_path / "Results"
-    data.mkdir()
-    results.mkdir()
+def test_generate_alignment_input_creates_expected_files(tmp_path: Path):
+    fasta_path = tmp_path / "dog_sequences.fa"
+    map_path = tmp_path / "breed_mapping.csv"
+    outdir = tmp_path
 
-    # Minimal per-sequence FASTA files expected by your script
-    (data / "AY656744.fasta").write_text(">AY656744.1 Springer\nACGTACGT\n", encoding="utf-8")
-    (data / "CM023446.fasta").write_text(">CM023446.1 Golden\nACGTTTGT\n", encoding="utf-8")
-    (data / "MW916023.fasta").write_text(">MW916023.1 Labrador\nACGGGGNN\n", encoding="utf-8")
+    # Dummy FASTA
+    fasta_path.write_text(">id1\nAAAA\n>id2\nCCCC\n", encoding="utf-8")
 
-    # Redirect default folders if your script reads env vars
-    monkeypatch.setenv("DOG_DATA_DIR", str(data))
-    monkeypatch.setenv("DOG_RESULTS_DIR", str(results))
+    # Dummy mapping
+    map_path.write_text("accession_id,breed\nid1,Labrador\nid2,Poodle\n", encoding="utf-8")
 
-    # Support both styles: ENTRY() or ENTRY(data_dir, results_dir)
-    try:
-        ENTRY()
-    except TypeError:
-        ENTRY(str(data), str(results))
+    # Run
+    out_fasta = generate_alignment_input(fasta_path, map_path, outdir)
 
-    # It should create some alignment input (name is your script’s choice)
-    produced = list(results.glob("*alignment*.*")) + list(results.glob("*input*.*"))
-    assert produced, "No alignment input files were written"
+    assert Path(out_fasta).exists()
+    contents = Path(out_fasta).read_text()
+
+    # Breed names should replace IDs
+    assert "Labrador" in contents
+    assert "Poodle" in contents
+    assert "id1" not in contents
+    assert "id2" not in contents
+
+
+def test_generate_alignment_input_with_missing_id(tmp_path: Path):
+    fasta_path = tmp_path / "dog_sequences.fa"
+    map_path = tmp_path / "breed_mapping.csv"
+    outdir = tmp_path
+
+    # FASTA with one missing from map
+    fasta_path.write_text(">id1\nAAAA\n>id3\nTTTT\n", encoding="utf-8")
+
+    # Mapping only includes id1
+    map_path.write_text("accession_id,breed\nid1,Labrador\n", encoding="utf-8")
+
+    out_fasta = generate_alignment_input(fasta_path, map_path, outdir)
+    contents = Path(out_fasta).read_text()
+
+    # id1 replaced with breed name
+    assert "Labrador" in contents
+    # id3 should still appear (no mapping found)
+    assert "id3" in contents
