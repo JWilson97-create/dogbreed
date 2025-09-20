@@ -23,7 +23,7 @@ for record in SeqIO.parse(input_fasta, "fasta"):  # Parse input FASTA
     updated_records.append(record)  # Clear description for cleaner output
 
 # Step 3: Write output FASTA
-with open(output_fasta, "w") as out_file:
+with open(output_fasta, "w") as out_file: 
     SeqIO.write(updated_records, out_file, "fasta")
 
 print(f"✅ Output written to {output_fasta}")

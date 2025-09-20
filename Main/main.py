@@ -39,13 +39,16 @@ def update_breed_mapping(file_path, accession_id, breed_name="Unknown Breed"): #
     """
 Update the breed mapping CSV file with a new accession ID and breed name.
 """
-    import csv
+    lookup_path = os.path.join(os.path.dirname(__file__), "local_breed_lookup.csv")
 
     # Try to update from local_breed_lookup.csv
     try:
-        with open("local_breed_lookup.csv", "r") as lookup_file: # Open the local breed lookup file
+        with open(lookup_path, "r") as lookup_file: # Open the local breed lookup file
             reader = csv.reader(lookup_file) # Create a CSV reader
+            next(reader, None)  # Skip header
             for row in reader: # Iterate over each row in the CSV
+                if not row or len(row) < 2: # Skip empty or malformed rows
+                    continue
                 if row[0] == accession_id: # If the accession ID matches
                     breed_name = row[1] # Get the breed name
                     break
